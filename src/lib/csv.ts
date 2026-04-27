@@ -2,6 +2,10 @@ import Papa from "papaparse";
 import { ENRICHED_HEADERS, type CompanyInputRow, type EnrichedRow } from "./types";
 
 export function parseInputCsv(text: string): CompanyInputRow[] {
+  if (text.trim().length === 0) {
+    throw new Error("CSV file is empty.");
+  }
+
   const result = Papa.parse<Record<string, string>>(text, {
     header: true,
     skipEmptyLines: true,
@@ -9,7 +13,9 @@ export function parseInputCsv(text: string): CompanyInputRow[] {
   });
 
   if (result.errors.length > 0) {
-    const fatal = result.errors.find((e) => e.type !== "FieldMismatch");
+    const fatal = result.errors.find(
+      (e) => e.type !== "FieldMismatch" && e.code !== "UndetectableDelimiter",
+    );
     if (fatal) {
       throw new Error(`CSV parse error: ${fatal.message}`);
     }
