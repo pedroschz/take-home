@@ -2,11 +2,13 @@ import Papa from "papaparse";
 import { ENRICHED_HEADERS, type CompanyInputRow, type EnrichedRow } from "./types";
 
 export function parseInputCsv(text: string): CompanyInputRow[] {
-  if (text.trim().length === 0) {
+  const cleaned = text.replace(/^﻿/, "");
+
+  if (cleaned.trim().length === 0) {
     throw new Error("CSV file is empty.");
   }
 
-  const result = Papa.parse<Record<string, string>>(text, {
+  const result = Papa.parse<Record<string, string>>(cleaned, {
     header: true,
     skipEmptyLines: true,
     transformHeader: (h) => h.trim(),

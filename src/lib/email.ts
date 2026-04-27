@@ -14,7 +14,10 @@ export async function sendEnrichedCsv(args: {
 
   const resend = new Resend(apiKey);
 
-  const preview = args.companyNames.slice(0, 10).join(", ");
+  const preview = args.companyNames
+    .slice(0, 10)
+    .map(escapeHtml)
+    .join(", ");
   const more =
     args.companyNames.length > 10
       ? ` and ${args.companyNames.length - 10} more`
@@ -45,4 +48,13 @@ export async function sendEnrichedCsv(args: {
   if (error) {
     throw new Error(`Resend error: ${error.message ?? JSON.stringify(error)}`);
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

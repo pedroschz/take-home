@@ -117,7 +117,15 @@ export async function enrichAll(
   rows: CompanyInputRow[],
   concurrency = 3,
 ): Promise<EnrichedRow[]> {
-  const results: EnrichedRow[] = new Array(rows.length);
+  const results: EnrichedRow[] = rows.map((r) =>
+    failedRow(
+      r,
+      safeNormalize(r.website),
+      [],
+      new Error("pipeline did not run"),
+      "pipeline",
+    ),
+  );
   let cursor = 0;
 
   async function worker(): Promise<void> {
@@ -127,18 +135,31 @@ export async function enrichAll(
       try {
         results[idx] = await enrichCompany(rows[idx]);
       } catch (err) {
-        results[idx] = failedRow(
-          rows[idx],
-          normalizeUrl(rows[idx].website),
-          [],
-          err,
-          "pipeline",
-        );
+        try {
+          results[idx] = failedRow(
+            rows[idx],
+            safeNormalize(rows[idx].website),
+            [],
+            err,
+            "pipeline",
+          );
+        } catch {
+          // results[idx] is already a defaulted failure row
+        }
       }
     }
   }
 
-  const workerCount = Math.min(concurrency, rows.length);
+  const workerCount = Math.min(concurrency, Math.max(rows.length, 1));
   await Promise.all(Array.from({ length: workerCount }, worker));
   return results;
+}
+
+function safeNormalize(website: unknown): string {
+  if (typeof website !== "string") return "";
+  try {
+    return normalizeUrl(website);
+  } catch {
+    return "";
+  }
 }

@@ -2,6 +2,7 @@ import * as cheerio from "cheerio";
 import type { ScrapeResult } from "./types";
 
 const FETCH_TIMEOUT_MS = 8000;
+const MAX_BODY_BYTES = 2_000_000;
 const USER_AGENT =
   "Mozilla/5.0 (compatible; LeadEnrichmentBot/1.0; +https://example.com/bot)";
 
@@ -46,7 +47,19 @@ export async function scrapeWebsite(rawUrl: string): Promise<ScrapeResult> {
       };
     }
 
-    const html = await res.text();
+    const declaredLength = Number(res.headers.get("content-length") ?? "0");
+    if (declaredLength > MAX_BODY_BYTES) {
+      return {
+        url,
+        title: "",
+        description: "",
+        text: "",
+        ok: false,
+        error: `body too large (${declaredLength} bytes)`,
+      };
+    }
+
+    const html = await readBodyCapped(res, MAX_BODY_BYTES);
     const $ = cheerio.load(html);
 
     $("script, style, noscript, svg, iframe").remove();
@@ -93,4 +106,28 @@ export async function scrapeWebsite(rawUrl: string): Promise<ScrapeResult> {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+async function readBodyCapped(res: Response, max: number): Promise<string> {
+  if (!res.body) return await res.text();
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder("utf-8", { fatal: false });
+  let received = 0;
+  let out = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      out += decoder.decode(value, { stream: true });
+      if (received >= max) {
+        await reader.cancel().catch(() => {});
+        break;
+      }
+    }
+    out += decoder.decode();
+  } catch {
+    // partial body is still useful
+  }
+  return out;
 }
