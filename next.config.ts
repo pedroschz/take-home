@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { withWorkflow } from "workflow/next";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -7,4 +8,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withWorkflow(nextConfig);

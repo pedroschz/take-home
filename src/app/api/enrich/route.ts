@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { buildEnrichedCsv, parseInputCsv } from "@/lib/csv";
-import { sendEnrichedCsv } from "@/lib/email";
-import { enrichAll } from "@/lib/enrich";
+import { start } from "workflow/api";
+import { parseInputCsv } from "@/lib/csv";
+import { enrichWorkflow, type ProgressEvent } from "@/workflows/enrich-workflow";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -72,23 +72,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const enriched = await enrichAll(rows, 3);
-    const csv = buildEnrichedCsv(enriched);
+    const run = await start(enrichWorkflow, [rows, email]);
+    console.log(
+      `[route] workflow started runId=${run.runId} rows=${rows.length} email=${JSON.stringify(email)}`,
+    );
 
-    const stamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")
-      .slice(0, 19);
+    const encoder = new TextEncoder();
+    const ndjson = run.readable.pipeThrough(
+      new TransformStream<ProgressEvent, Uint8Array>({
+        transform(event, controller) {
+          controller.enqueue(encoder.encode(JSON.stringify(event) + "\n"));
+        },
+      }),
+    );
 
-    await sendEnrichedCsv({
-      to: email,
-      csv,
-      filename: `enriched-leads-${stamp}.csv`,
-      rowCount: enriched.length,
-      companyNames: enriched.map((r) => r["Company Name"]),
+    return new Response(ndjson, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-cache, no-transform",
+        "X-Workflow-Run-Id": run.runId,
+      },
     });
-
-    return NextResponse.json({ ok: true, rows: enriched.length });
   } catch (err) {
     console.error("Enrich pipeline failed:", err);
     return NextResponse.json(

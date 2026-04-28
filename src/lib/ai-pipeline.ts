@@ -1,12 +1,10 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { NewsResult, ScrapeResult, TavilyResult } from "./types";
 
-const MODEL = anthropic(
-  (process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6") as Parameters<
-    typeof anthropic
-  >[0],
+const MODEL = google(
+  process.env.GEMINI_MODEL ?? "gemini-3.1-flash-lite-preview",
 );
 
 const profileSchema = z.object({
@@ -132,6 +130,7 @@ export async function extractCompanyProfile(args: {
     system:
       "You are a B2B sales research analyst. From the supplied raw research, extract a clean, factual structured profile of the company. Never invent facts: if the research does not support a field, return a short conservative best-guess and mark uncertainty in the value (e.g. 'likely SaaS — unconfirmed'). Keep each field tight.",
     prompt: `Research bundle for ${args.companyName}:\n\n${context}`,
+    abortSignal: AbortSignal.timeout(60_000),
   });
 
   return object;
@@ -159,6 +158,7 @@ export async function generateInsights(args: {
     system:
       "You are a senior outbound sales strategist. Given a structured company profile and the underlying research, produce concrete sales angles and risk signals. Each angle must reference something specific (a product, a recent move, an audience pain). Each risk must be a real reason a rep should hesitate or prepare an objection. Avoid generic statements like 'they care about efficiency'.",
     prompt: `Structured profile:\n${JSON.stringify(args.profile, null, 2)}\n\nUnderlying research:\n${context}`,
+    abortSignal: AbortSignal.timeout(60_000),
   });
 
   return object;

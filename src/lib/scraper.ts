@@ -1,4 +1,4 @@
-import * as cheerio from "cheerio";
+import * as cheerio from "cheerio/slim";
 import type { ScrapeResult } from "./types";
 
 const FETCH_TIMEOUT_MS = 8000;

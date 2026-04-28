@@ -2,6 +2,8 @@ import type { TavilyResult } from "./types";
 
 const TAVILY_ENDPOINT = "https://api.tavily.com/search";
 
+const TAVILY_TIMEOUT_MS = 15_000;
+
 export async function tavilySearch(query: string): Promise<TavilyResult> {
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey) {
@@ -19,6 +21,7 @@ export async function tavilySearch(query: string): Promise<TavilyResult> {
         include_answer: true,
         max_results: 5,
       }),
+      signal: AbortSignal.timeout(TAVILY_TIMEOUT_MS),
     });
 
     if (!res.ok) {

@@ -19,6 +19,7 @@ export async function fetchNews(companyName: string): Promise<NewsResult> {
   try {
     const res = await fetch(`${NEWSAPI_ENDPOINT}?${params.toString()}`, {
       headers: { "X-Api-Key": apiKey },
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!res.ok) {
