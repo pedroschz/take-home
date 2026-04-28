@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-
-type StageName =
-  | "scrape"
-  | "tavily"
-  | "news"
-  | "profile"
-  | "insights";
+import type { ProgressEvent, StageName } from "@/lib/progress";
 
 type StageStatus = "pending" | "running" | "ok" | "failed";
 
@@ -18,19 +12,6 @@ type RowState = {
 };
 
 type EmailStatus = "pending" | "running" | "ok" | "failed";
-
-type ProgressEvent =
-  | { type: "start"; totalRows: number; companies: string[] }
-  | {
-      type: "stage";
-      rowIdx: number;
-      stage: StageName | "email";
-      status: "running" | "ok" | "failed";
-      message?: string;
-    }
-  | { type: "rowDone"; rowIdx: number; success: boolean }
-  | { type: "complete"; rowCount: number; emailedTo: string }
-  | { type: "error"; message: string };
 
 type Status =
   | { kind: "idle" }
@@ -74,11 +55,12 @@ export default function Home() {
       return;
     }
 
+    if (event.type === "email") {
+      setEmailStage(event.status);
+      return;
+    }
+
     if (event.type === "stage") {
-      if (event.stage === "email") {
-        setEmailStage(event.status);
-        return;
-      }
       const stage = event.stage;
       setRows((prev) => {
         const next = [...prev];
@@ -351,8 +333,8 @@ export default function Home() {
       )}
 
       <footer className="text-xs text-zinc-500">
-        Pipeline: website scrape → Tavily web search → NewsAPI → Claude profile
-        extraction → Claude sales/risk synthesis → Resend email.
+        Pipeline: website scrape → Tavily web search → NewsAPI → Gemini profile
+        extraction → Gemini sales/risk synthesis → Resend email.
       </footer>
     </main>
   );

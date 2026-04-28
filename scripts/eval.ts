@@ -1,16 +1,10 @@
-/**
- * Eval harness for the AI pipeline.
- *
- * Runs the two structured Claude calls against a small fixture set and asserts
- * schema validity, non-empty fields, and that sales angles avoid the most
- * common generic-fluff failure modes. This is not a substitute for human
- * review of outputs, but it catches "model returned empty array", "model
- * fell back to a no-op apology", and "schema drift" automatically.
- *
- * Usage: `npm run eval`
- */
+// Smoke test for the AI pipeline. Run with `npm run eval`.
 
-import { extractCompanyProfile, generateInsights } from "../src/lib/ai-pipeline";
+import {
+  buildResearchContext,
+  extractCompanyProfile,
+  generateInsights,
+} from "../src/lib/ai-pipeline";
 import { fetchNews } from "../src/lib/news";
 import { normalizeUrl, scrapeWebsite } from "../src/lib/scraper";
 import { tavilySearch } from "../src/lib/tavily";
@@ -69,15 +63,18 @@ async function runFixture(fixture: Fixture): Promise<Failure[]> {
     fetchNews(fixture.companyName),
   ]);
 
-  const aiBundle = {
+  const context = buildResearchContext({
     companyName: fixture.companyName,
     website,
     scrape,
     tavily,
     news,
-  };
+  });
 
-  const profile = await extractCompanyProfile(aiBundle);
+  const profile = await extractCompanyProfile({
+    companyName: fixture.companyName,
+    context,
+  });
 
   assert(failures, fixture.companyName, "profile.industry non-empty",
     profile.industry.trim().length > 0,
@@ -100,7 +97,11 @@ async function runFixture(fixture: Fixture): Promise<Failure[]> {
     profile.keyOfferingSummary.trim().length > 20,
     `keyOfferingSummary length=${profile.keyOfferingSummary.length}`);
 
-  const insights = await generateInsights({ profile, ...aiBundle });
+  const insights = await generateInsights({
+    companyName: fixture.companyName,
+    profile,
+    context,
+  });
 
   assert(failures, fixture.companyName, "insights.salesAngles has 3",
     insights.salesAngles.length === 3,

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { start } from "workflow/api";
 import { parseInputCsv } from "@/lib/csv";
-import { enrichWorkflow, type ProgressEvent } from "@/workflows/enrich-workflow";
+import type { ProgressEvent } from "@/lib/progress";
+import { enrichWorkflow } from "@/workflows/enrich-workflow";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;

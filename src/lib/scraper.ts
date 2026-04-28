@@ -126,8 +126,6 @@ async function readBodyCapped(res: Response, max: number): Promise<string> {
       }
     }
     out += decoder.decode();
-  } catch {
-    // partial body is still useful
-  }
+  } catch {}
   return out;
 }

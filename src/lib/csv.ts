@@ -26,20 +26,8 @@ export function parseInputCsv(text: string): CompanyInputRow[] {
   const rows: CompanyInputRow[] = [];
 
   for (const row of result.data) {
-    const companyName = (
-      row["Company Name"] ??
-      row["company name"] ??
-      row["company_name"] ??
-      row["Company"] ??
-      ""
-    ).trim();
-    const website = (
-      row["Website"] ??
-      row["website"] ??
-      row["URL"] ??
-      row["url"] ??
-      ""
-    ).trim();
+    const companyName = (row["Company Name"] ?? "").trim();
+    const website = (row["Website"] ?? "").trim();
 
     if (!companyName && !website) continue;
     if (!companyName || !website) {
