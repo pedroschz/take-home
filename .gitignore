@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ai tooling notes (kept local, never committed)
+AGENTS.md
+CLAUDE.md
